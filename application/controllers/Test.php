@@ -46,7 +46,6 @@ class Test extends CI_Controller {
                $this->load->helper('url');
                $this->load->view('/test/head');
                $this->load->view('/test/upload_form',$error);
-               $this->load->view('/test/show_table', $result_arr);
                $this->load->view('/test/foot');
            }
         }
@@ -57,23 +56,25 @@ class Test extends CI_Controller {
     }
 
     public function _task1($data){
-        if( isset($data)){
+        if( $data !== ''){
             $myfile = fopen('./uploads/'.$data,'r') or die("Unable to open file!");
+            if($myfile){
+                $my_arr =  preg_split("/[\s]+/", fread($myfile,filesize('./uploads/'.$data))); // read and split
+                fclose($myfile);
+                $big_arr = [];
 
-            $my_arr =  preg_split("/[\s]+/", fread($myfile,filesize('./uploads/'.$data))); // read and split
-            fclose($myfile);
-            $big_arr = [];
+                foreach($my_arr as $arr){
 
-            foreach($my_arr as $arr){
+                    $arr = str_split(preg_replace( '/[^0-9]/', '', $arr )); // we need only digits
+                    rsort($arr);
+                    $big_arr[]=$arr;
+                }
+                $json_str  = json_encode($big_arr,JSON_NUMERIC_CHECK);
 
-                $arr = str_split(preg_replace( '/[^0-9]/', '', $arr )); // we need only digits
-                rsort($arr);
-                $big_arr[]=$arr;
+                return $json_str;
             }
-            $json_str  = json_encode($big_arr,JSON_NUMERIC_CHECK);
-
-            return $json_str;
         }
+        return false;
     }
 
     public function _task2($json_str){
@@ -138,11 +139,16 @@ class Test extends CI_Controller {
         $dir = $this->getDir();
         $lastModFile= $this->_getLastUploadedFile($dir);
         $json_str =  $this->_task1($lastModFile);
-        if($this->_task2($json_str)>0){
-            $result_arr = $this->_task3();
-            $result_arr = json_encode($result_arr);
-            print_r($result_arr);
+        if($json_str){
+            if($this->_task2($json_str)>0){
+                $result_arr = $this->_task3();
+                $result_arr = json_encode($result_arr);
+                print_r($result_arr);
+            }
         }
+        else
+            echo 'no data or error';
+
         exit();
     }
 
